@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>环形殖民地 · Loop Colony</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Patrick+Hand&family=ZCOOL+QingKe+HuangYou&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css?v=26">
+</head>
+<body>
+<div id="app">
+  <canvas id="game"></canvas>
+
+  <!-- ============ HUD ============ -->
+  <div class="hud" id="hud">
+    <div class="hud-left">
+      <div class="paper hp-scrap">
+        <div class="hp-label">
+          <span class="label-hand">维生</span>
+          <span id="hpText">70 / 70</span>
+        </div>
+        <div class="hp-bar"><div id="hpFill"></div><div class="hp-ticks"></div></div>
+        <div class="hp-sub"><span id="lapBadge">第 1 圈</span><span class="dot">·</span><span id="killCount">击倒 0</span></div>
+      </div>
+      <div class="gold-scrap paper">
+        <canvas class="mini-icon" data-icon="coin" width="26" height="26"></canvas>
+        <div>
+          <div class="gold-num" id="runGold">0</div>
+          <div class="gold-sub">本轮能源</div>
+        </div>
+        <div class="meta-mini">
+          <span class="label-hand">库存</span>
+          <span id="metaGoldHud">0</span>
+        </div>
+      </div>
+    </div>
+    <div class="hud-right">
+      <button class="round-btn" id="btnCodex" title="配方图鉴"><span class="doodle-label">配方</span></button>
+      <button class="round-btn" id="btnTree" title="技能树"><span class="doodle-label">技能</span></button>
+      <button class="round-btn" id="btnPause" title="暂停"><span class="doodle-label">停</span></button>
+      <button class="round-btn" id="btnSound" title="音效"><span class="doodle-label" id="soundLabel">♪</span></button>
+    </div>
+  </div>
+
+  <!-- ============ Extraction ============ -->
+  <div class="extract-wrap" id="extractWrap">
+    <div class="extract-hint" id="extractHint">离开起点撤离 · 保留 60%</div>
+    <button class="extract-btn" id="extractBtn">
+      <span class="extract-word">撤离</span>
+      <span class="extract-pct" id="extractPct">60%</span>
+    </button>
+  </div>
+
+  <!-- ============ Hand of cards ============ -->
+  <footer class="hand-bar" id="handBar">
+    <div class="hand-head">
+      <span class="hand-title">模块</span>
+      <span class="hand-hint" id="handHint">地形居中 · 模块两侧 · 同名升级</span>
+      <span class="hand-count"><span id="handCount">0</span>/<span id="handLimit">8</span></span>
+    </div>
+    <div class="cards" id="cards"></div>
+  </footer>
+
+  <!-- ============ Start screen ============ -->
+  <div class="overlay show" id="startOverlay">
+    <div class="poster start-poster">
+      <div class="tape tape-tl"></div><div class="tape tape-br"></div>
+      <div class="logo-row">
+        <canvas id="logoDoodle" width="108" height="108"></canvas>
+        <div>
+          <h1 class="game-title">环形殖民地</h1>
+          <p class="game-sub">LOOP&nbsp;COLONY · 深空维生环</p>
+        </div>
+      </div>
+      <p class="lead">殖民者沿着环形舱段自动巡检，从不回头。<br>地形模块铺在步道正中，设备舱摆在两侧，让这座殖民地自己运转起来。</p>
+      <canvas id="coverDoodle" width="700" height="150" class="cover-doodle" aria-hidden="true"></canvas>
+      <div class="polaroid-row">
+        <div class="polaroid"><b>① 自动巡检</b><span>每圈都会更难一点</span></div>
+        <div class="polaroid"><b>② 舱段联动</b><span>地形居中，两侧设备各自联动</span></div>
+        <div class="polaroid"><b>③ 气闸撤离</b><span>带 100% 能源回站</span></div>
+        <div class="polaroid"><b>④ 升级科技树</b><span>下一轮，从更高的地方开始</span></div>
+      </div>
+      <div class="start-meta">
+        <div><span class="label-hand">能源库存</span><b id="startMetaGold">0</b></div>
+        <div><span class="label-hand">最远</span><b id="startBestLap">0</b> 圈</div>
+        <div><span class="label-hand">累计</span><b id="startTotalGold">0</b></div>
+      </div>
+      <div class="btn-row">
+        <button class="btn primary big" id="startBtn">开始这一圈</button>
+        <button class="btn ghost" id="openTreeFromStart">技能树</button>
+        <button class="btn ghost" id="openCodexFromStart">配方图鉴</button>
+      </div>
+      <p class="small-note">能源只在撤离或阵亡时结算 · 阵亡只留 20%</p>
+    </div>
+  </div>
+
+  <!-- ============ Lap prompt ============ -->
+  <div class="overlay" id="lapOverlay">
+    <div class="poster lap-poster">
+      <div class="tape tape-tl"></div>
+      <h2 class="lap-title" id="lapTitle">回到气闸了</h2>
+      <p class="lap-sub" id="lapSub">第 2 圈完成 · 怪物变强了</p>
+      <div class="lap-rewards" id="lapRewards"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="continueBtn">继续跑</button>
+        <button class="btn" id="extractAtStartBtn">撤离 · 100%</button>
+      </div>
+      <p class="small-note">离开气闸后再撤，只能保住 60%</p>
+    </div>
+  </div>
+
+  <!-- ============ Pause ============ -->
+  <div class="overlay" id="pauseOverlay">
+    <div class="poster pause-poster">
+      <h2>暂停巡检</h2>
+      <p class="pause-note" id="pauseNote">舱段时间暂停了</p>
+      <div class="btn-col">
+        <button class="btn primary" id="resumeBtn">继续跑</button>
+        <button class="btn" id="pauseTreeBtn">技能树</button>
+        <button class="btn ghost" id="pauseExtractBtn">撤离</button>
+        <button class="btn ghost" id="abandonBtn">放弃本轮</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Skill tree ============ -->
+  <div class="overlay" id="treeOverlay">
+    <div class="tree-sheet paper">
+      <div class="tape tape-tr"></div>
+      <header class="tree-head">
+        <div>
+          <h2 class="tree-title">殖民科技树</h2>
+          <p class="tree-sub">单一主干 · 300 个节点 · 点一次，永久生效</p>
+        </div>
+        <div class="tree-balance">
+          <canvas class="mini-icon" data-icon="coin" width="26" height="26"></canvas>
+          <span id="treeGold">0</span>
+        </div>
+        <button class="btn small" id="closeTree">返回</button>
+      </header>
+      <div class="tree-body">
+        <div class="tree-stage" id="treeStage">
+          <div class="tree-world" id="treeWorld">
+            <svg class="tree-links" id="treeLinks"></svg>
+            <div class="tree-nodes" id="treeNodes"></div>
+          </div>
+          <div class="tree-controls">
+            <button class="tree-zoom-btn" data-zoom="out" title="缩小">−</button>
+            <button class="tree-zoom-btn" data-zoom="in" title="放大">＋</button>
+            <button class="tree-zoom-btn wide" data-zoom="fit" title="查看整棵树">全览</button>
+            <button class="tree-zoom-btn wide" data-zoom="core" title="回到核心">回核心</button>
+          </div>
+          <div class="tree-stage-hint">点节点放大查看 · 拖动平移 · 滚轮缩放</div>
+        </div>
+        <aside class="tree-panel" id="treePanel"></aside>
+      </div>
+      <footer class="tree-foot">
+        <span class="tree-tip">从核心出发，点亮前置节点后，沿分叉继续向外生长。</span>
+        <button class="btn ghost small" id="resetSave">清空存档</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- ============ Codex ============ -->
+  <div class="overlay" id="codexOverlay">
+    <div class="codex-sheet paper">
+      <header class="codex-head">
+        <div>
+          <h2 class="tree-title">联动图鉴</h2>
+          <p class="tree-sub">地形居中，设备放两侧。里侧 / 中间 / 外侧三格都能利用。</p>
+        </div>
+        <button class="btn small" id="closeCodex">返回</button>
+      </header>
+      <div class="codex-grid" id="codexGrid"></div>
+      <div class="codex-section-title">
+        <span>三件套联动</span>
+        <span class="codex-section-note">地形放中间跑道，两侧各放一个设备，凑齐配方即可触发</span>
+      </div>
+      <div class="codex-triples" id="codexTriple"></div>
+      <div class="codex-foot" id="codexFoot"></div>
+    </div>
+  </div>
+
+  <!-- ============ Run result ============ -->
+  <div class="overlay" id="endOverlay">
+    <div class="poster end-poster">
+      <div class="tape tape-tl"></div>
+      <h2 id="endTitle">撤离成功</h2>
+      <p id="endSub" class="end-sub"></p>
+      <div class="receipt" id="endReceipt"></div>
+      <div class="btn-row">
+        <button class="btn primary" id="againBtn">再来一圈</button>
+        <button class="btn" id="endTreeBtn">去技能树</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Confirm extract ============ -->
+  <div class="overlay" id="confirmOverlay">
+    <div class="poster confirm-poster">
+      <h2>现在要走？</h2>
+      <p class="confirm-note" id="confirmNote">不在起点撤离，只能保留 60% 金币。</p>
+      <div class="btn-row">
+        <button class="btn" id="confirmNo">再跑一会儿</button>
+        <button class="btn primary" id="confirmYes">就这么走</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ Tooltip / toast ============ -->
+  <div class="tooltip" id="tooltip"></div>
+  <div class="toast-stack" id="toastStack"></div>
+</div>
+
+<script src="data.js?v=26"></script>
+<script src="art.js?v=26"></script>
+<script src="game.js?v=26"></script>
+</body>
+</html>
